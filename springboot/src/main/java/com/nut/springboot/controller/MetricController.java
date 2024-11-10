@@ -18,7 +18,7 @@ public class MetricController {
 
     @GetMapping("/cpu")
     public int getCpuMetrics() {
-        return metricService.generateCpuMetrics();
+        return metricService.generateCpuMetric();
     }
 
     @GetMapping("/memory")
