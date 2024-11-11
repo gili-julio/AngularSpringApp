@@ -1,61 +1,62 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { EChartsOption } from 'echarts';
 import { NgxEchartsDirective, provideEcharts } from 'ngx-echarts';
+import { CommonModule } from '@angular/common';
+import { MetricService } from '../../services/metrics.service';
+import { Subscription, interval, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-chart',
   standalone: true,
-  imports: [ CommonModule, NgxEchartsDirective],
+  imports: [CommonModule, NgxEchartsDirective],
   templateUrl: './chart.component.html',
-  styleUrl: './chart.component.css',
+  styleUrls: ['./chart.component.css'],
   providers: [
     provideEcharts()
   ]
 })
 export class ChartComponent implements OnInit, OnDestroy {
+  @Input() endpoint!: string; // API endpoint input
   options!: EChartsOption;
   updateOptions!: EChartsOption;
+  private dataSubscription!: Subscription;
+  data: DataT[] = [];
 
-  private oneDay = 24 * 3600 * 1000;
-  private now!: Date;
-  private value!: number;
-  private data!: DataT[];
-  private timer: any;
-
-  constructor() {}
+  constructor(private chartDataService: MetricService) {}
 
   ngOnInit(): void {
-    // generate some random testing data:
-    this.data = [];
-
-
-    this.now = new Date(1997, 9, 3);
-    this.value = Math.random() * 1000;
-
-    for (let i = 0; i < 1000; i++) {
-      this.data.push(this.randomData());
-    }
-
-    // initialize chart options:
-    this.options = {
-      title: {
-        text: 'Dynamic Data + Time Axis',
+    // Fetch data every 5 seconds from API
+    this.dataSubscription = interval(5000).pipe(
+      switchMap(() => this.chartDataService.fetchData(this.endpoint))
+    ).subscribe({
+      next: (data) => {
+        this.data = data;  // Update data with new values
+        this.updateChart(data);
       },
+      error: (err) => console.error('Error fetching data:', err)
+    });
+
+    // Initial chart setup
+    this.initializeChart();
+  }
+
+  ngOnDestroy() {
+    this.dataSubscription.unsubscribe();
+  }
+
+  private initializeChart() {
+    this.options = {
+      title: { text: 'Usage Data Over Time' },
       tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
           const param = params[0];
           const date = new Date(param.name);
-          return (
-            date.getDate() +
-            '/' +
-            (date.getMonth() + 1) +
-            '/' +
-            date.getFullYear() +
-            ' : ' +
-            param.value[1]
-          );
+          const [alertStart, alertEnd] = param.data.alert; // Using `alert` data
+          return `
+            ${date.getSeconds()}s: ${param.value[1]}%<br />
+            Alert Range: ${alertStart} - ${alertEnd}
+          `;
         },
         axisPointer: {
           animation: false,
@@ -63,63 +64,42 @@ export class ChartComponent implements OnInit, OnDestroy {
       },
       xAxis: {
         type: 'time',
-        splitLine: {
-          show: false,
-        },
+        axisLabel: { formatter: '{value}s' }, // Show time in seconds
+        splitLine: { show: false },
       },
       yAxis: {
         type: 'value',
+        min: 0,
+        max: 100,  // Y-axis from 0% to 100%
+        axisLabel: { formatter: '{value}%' },
         boundaryGap: [0, '100%'],
-        splitLine: {
-          show: false,
-        },
+        splitLine: { show: false },
       },
       series: [
         {
-          name: 'Mocking Data 1', // Change name for each series
+          name: 'Usage Percentage',
           type: 'line',
           showSymbol: false,
-          data: this.data, // Use separate data arrays for each line
+          data: this.data.map(d => d.value), // Initial data
         },
       ],
     };
-
-    // Mock dynamic data:
-    this.timer = setInterval(() => {
-      for (let i = 0; i < 5; i++) {
-        this.data.shift();
-        this.data.push(this.randomData());
-      }
-
-      // update series data:
-      this.updateOptions = {
-        series: [
-          {
-            data: this.data,
-          },
-        ],
-      };
-    }, 1000);
   }
 
-  ngOnDestroy() {
-    clearInterval(this.timer);
-  }
-
-  randomData(): DataT {
-    this.now = new Date(this.now.getTime() + this.oneDay);
-    this.value = this.value + Math.random() * 21 - 10;
-    return {
-      name: this.now.toString(),
-      value: [
-        [this.now.getFullYear(), this.now.getMonth() + 1, this.now.getDate()].join('/'),
-        Math.round(this.value),
+  private updateChart(newData: DataT[]) {
+    this.updateOptions = {
+      series: [
+        {
+          data: newData.map(d => d.value) // Map `value` field for chart data
+        },
       ],
     };
   }
 }
 
-type DataT = {
+export type DataT = {
   name: string;
-  value: [string, number];
+  usage: number;
+  alert: [string, string];
+  value?: [string, number]; // Added to store processed value for ECharts
 };
