@@ -27,15 +27,15 @@ public class AuthenticationController {
     @PostMapping("/auth")
     public String generateToken(@RequestBody AuthRequest authRequest) throws Exception {
         try {
-            Authentication authentication = authenticationManager.authenticate(
+             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
+            return jwtUtil.generateToken(authRequest.getUsername());
         } catch (AuthenticationException e) {
             throw new Exception("Credenciais inválidas", e);
         }
-        return jwtUtil.generateToken(authRequest.getUsername());
     }
 
-    @GetMapping("/teste")
+    @GetMapping("/dashboard")
     public String testarAutenticacao() {
         return "Você está autenticado";
     }

@@ -29,7 +29,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String username = null;
 
         // Verifica se o cabeçalho de autorização contém o token Bearer
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer")) {
             jwtToken = authorizationHeader.substring(7); // Extrai o token
             username = jwtUtil.extractUsername(jwtToken);
         }

@@ -9,6 +9,6 @@ public class ApiEndpoints {
 
     // Endpoints que requerem autenticação
     public static final String[] SECURED_ENDPOINTS = {
-            "/teste"
+            "/dashboard"
     };
 }
