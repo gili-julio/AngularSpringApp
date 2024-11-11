@@ -78,11 +78,13 @@ public class MetricService {
     }
 
     private void removeAlerts(String metricName) {
-        Iterator<MetricAlert> iterator = alerts.iterator();
-        while (iterator.hasNext()) {
-            MetricAlert alert = iterator.next();
-            if (alert.getMetricName().equals(metricName)) {
-                iterator.remove();
+        if (!alerts.isEmpty()) {
+            Iterator<MetricAlert> iterator = alerts.iterator();
+            while (iterator.hasNext()) {
+                MetricAlert alert = iterator.next();
+                if (alert.getMetricName().equals(metricName)) {
+                    iterator.remove();
+                }
             }
         }
     }
