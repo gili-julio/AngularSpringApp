@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
@@ -76,14 +77,20 @@ public class MetricService {
         return latency;
     }
 
+    private void removeAlerts(String metricName) {
+        Iterator<MetricAlert> iterator = alerts.iterator();
+        while (iterator.hasNext()) {
+            MetricAlert alert = iterator.next();
+            if (alert.getMetricName().equals(metricName)) {
+                iterator.remove();
+            }
+        }
+    }
+
     @Scheduled(fixedRate = 5000)
     public void sendCpuMetric() {
         // Limpa o alerta da cpu a cada verificação
-        for (MetricAlert metricAlert : alerts) {
-            if (metricAlert.getMetricName().equals("cpu")) {
-                alerts.remove(metricAlert);
-            }
-        }
+        removeAlerts("cpu");
 
         int cpuUsage = generateCpuMetric();
         messagingTemplate.convertAndSend("/topic/metrics",
@@ -93,11 +100,7 @@ public class MetricService {
     @Scheduled(fixedRate = 8000)
     public void sendMemoryMetric() {
         // Limpa o alerta da memory a cada verificação
-        for (MetricAlert metricAlert : alerts) {
-            if (metricAlert.getMetricName().equals("memory")) {
-                alerts.remove(metricAlert);
-            }
-        }
+        removeAlerts("memory");
 
         int memoryUsage = generateMemoryMetric();
         messagingTemplate.convertAndSend("/topic/metrics",
@@ -107,11 +110,7 @@ public class MetricService {
     @Scheduled(fixedRate = 3000)
     public void sendLatencyMetric() {
         // Limpa o alerta da latency a cada verificação
-        for (MetricAlert metricAlert : alerts) {
-            if (metricAlert.getMetricName().equals("latency")) {
-                alerts.remove(metricAlert);
-            }
-        }
+        removeAlerts("latency");
 
         int latency = generateLatencyMetric();
         messagingTemplate.convertAndSend("/topic/metrics",
