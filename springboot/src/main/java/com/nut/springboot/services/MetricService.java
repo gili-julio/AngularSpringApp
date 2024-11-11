@@ -35,7 +35,7 @@ public class MetricService {
     private static final int MEMORY_ALERT_LIMIT = 75;
     private static final int LATENCY_ALERT_LIMIT = 200;
 
-    private void checkAlerts(String metricName, int value, int limit) {
+    private synchronized void checkAlerts(String metricName, int value, int limit) {
         // Procura o alerta existente com o mesmo nome de métrica
         Optional<MetricAlert> existingAlert = alerts.stream()
                 .filter(alert -> alert.getMetricName().equals(metricName))
@@ -56,7 +56,7 @@ public class MetricService {
     }
 
     @Scheduled(fixedRate = 5000)
-    public int generateCpuMetric() {
+    public synchronized int generateCpuMetric() {
         // Gera o valor da métrica de CPU
         int cpuUsage = random.nextInt(101);
         this.cpuUsage = cpuUsage;
@@ -68,7 +68,7 @@ public class MetricService {
     }
 
     @Scheduled(fixedRate = 8000)
-    public int generateMemoryMetric() {
+    public synchronized int generateMemoryMetric() {
         // Gera o valor da métrica de memória
         int memoryUsage = random.nextInt(101);
         this.memoryUsage = memoryUsage;
@@ -80,7 +80,7 @@ public class MetricService {
     }
 
     @Scheduled(fixedRate = 3000)
-    public int generateLatencyMetric() {
+    public synchronized int generateLatencyMetric() {
         // Gera o valor da métrica de latência
         int latency = 50 + random.nextInt(451);
         this.latency = latency;
