@@ -9,10 +9,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class MetricService {
@@ -21,7 +20,7 @@ public class MetricService {
     private SimpMessagingTemplate messagingTemplate;
 
     @Getter
-    private final List<MetricAlert> alerts = new ArrayList<>();
+    private final List<MetricAlert> alerts = new CopyOnWriteArrayList<>();
     private final Random random = new Random();
 
     @Getter
@@ -78,15 +77,7 @@ public class MetricService {
     }
 
     private void removeAlerts(String metricName) {
-        if (!alerts.isEmpty()) {
-            Iterator<MetricAlert> iterator = alerts.iterator();
-            while (iterator.hasNext()) {
-                MetricAlert alert = iterator.next();
-                if (alert.getMetricName().equals(metricName)) {
-                    iterator.remove();
-                }
-            }
-        }
+        alerts.removeIf(alert -> alert.getMetricName().equals(metricName));
     }
 
     @Scheduled(fixedRate = 5000)
