@@ -1,7 +1,11 @@
 package com.nut.springboot.services;
 
+import com.nut.springboot.controller.MetricController.MetricResponse;
 import com.nut.springboot.models.MetricAlert;
 import lombok.Getter;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +15,9 @@ import java.util.Random;
 
 @Service
 public class MetricService {
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @Getter
     private final List<MetricAlert> alerts = new ArrayList<>();
@@ -35,17 +42,79 @@ public class MetricService {
 
     @Scheduled(fixedRate = 5000)
     public int generateCpuMetric() {
-        return this.cpuUsage = random.nextInt(101);
+        // Gera o valor da métrica de CPU
+        int cpuUsage = random.nextInt(101);
+        this.cpuUsage = cpuUsage;
+
+        // Verifica se o valor da métrica excede o limite
+        checkAlerts("cpu", cpuUsage, CPU_ALERT_LIMIT);
+
+        return cpuUsage;
     }
 
     @Scheduled(fixedRate = 8000)
     public int generateMemoryMetric() {
-        return this.memoryUsage = random.nextInt(101);
+        // Gera o valor da métrica de memória
+        int memoryUsage = random.nextInt(101);
+        this.memoryUsage = memoryUsage;
+
+        // Verifica se o valor da métrica excede o limite
+        checkAlerts("memory", memoryUsage, MEMORY_ALERT_LIMIT);
+
+        return memoryUsage;
     }
 
     @Scheduled(fixedRate = 3000)
     public int generateLatencyMetric() {
-        return this.latency = 50 + random.nextInt(451);
+        // Gera o valor da métrica de latência
+        int latency = 50 + random.nextInt(451);
+        this.latency = latency;
+
+        // Verifica se o valor da métrica excede o limite
+        checkAlerts("latency", latency, LATENCY_ALERT_LIMIT);
+
+        return latency;
     }
 
+    @Scheduled(fixedRate = 5000)
+    public void sendCpuMetric() {
+        // Limpa o alerta da cpu a cada verificação
+        for (MetricAlert metricAlert : alerts) {
+            if (metricAlert.getMetricName().equals("cpu")) {
+                alerts.remove(metricAlert);
+            }
+        }
+
+        int cpuUsage = generateCpuMetric();
+        messagingTemplate.convertAndSend("/metrics",
+                new MetricResponse("cpu", cpuUsage, getAlerts()));
+    }
+
+    @Scheduled(fixedRate = 8000)
+    public void sendMemoryMetric() {
+        // Limpa o alerta da memory a cada verificação
+        for (MetricAlert metricAlert : alerts) {
+            if (metricAlert.getMetricName().equals("memory")) {
+                alerts.remove(metricAlert);
+            }
+        }
+
+        int memoryUsage = generateMemoryMetric();
+        messagingTemplate.convertAndSend("/metrics",
+                new MetricResponse("memory", memoryUsage, getAlerts()));
+    }
+
+    @Scheduled(fixedRate = 3000)
+    public void sendLatencyMetric() {
+        // Limpa o alerta da latency a cada verificação
+        for (MetricAlert metricAlert : alerts) {
+            if (metricAlert.getMetricName().equals("latency")) {
+                alerts.remove(metricAlert);
+            }
+        }
+
+        int latency = generateLatencyMetric();
+        messagingTemplate.convertAndSend("/metrics",
+                new MetricResponse("latency", latency, getAlerts()));
+    }
 }
