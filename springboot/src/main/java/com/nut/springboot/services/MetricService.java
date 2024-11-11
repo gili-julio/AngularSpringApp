@@ -86,7 +86,7 @@ public class MetricService {
         }
 
         int cpuUsage = generateCpuMetric();
-        messagingTemplate.convertAndSend("/metrics",
+        messagingTemplate.convertAndSend("/topic/metrics",
                 new MetricResponse("cpu", cpuUsage, getAlerts()));
     }
 
@@ -100,7 +100,7 @@ public class MetricService {
         }
 
         int memoryUsage = generateMemoryMetric();
-        messagingTemplate.convertAndSend("/metrics",
+        messagingTemplate.convertAndSend("/topic/metrics",
                 new MetricResponse("memory", memoryUsage, getAlerts()));
     }
 
@@ -114,7 +114,7 @@ public class MetricService {
         }
 
         int latency = generateLatencyMetric();
-        messagingTemplate.convertAndSend("/metrics",
+        messagingTemplate.convertAndSend("/topic/metrics",
                 new MetricResponse("latency", latency, getAlerts()));
     }
 }
