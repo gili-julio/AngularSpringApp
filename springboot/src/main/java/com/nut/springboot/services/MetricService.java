@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -35,8 +36,22 @@ public class MetricService {
     private static final int LATENCY_ALERT_LIMIT = 200;
 
     private void checkAlerts(String metricName, int value, int limit) {
+        // Procura o alerta existente com o mesmo nome de métrica
+        Optional<MetricAlert> existingAlert = alerts.stream()
+                .filter(alert -> alert.getMetricName().equals(metricName))
+                .findFirst();
         if (value > limit) {
-            alerts.add(new MetricAlert(metricName, metricName + " is above limit: " + value));
+            if (existingAlert.isPresent()) {
+                // Atualiza a mensagem do alerta existente
+                existingAlert.get().setMessage(metricName + " is above limit: " + value);
+            } else {
+                // Adiciona um novo alerta se não existir ainda
+                alerts.add(new MetricAlert(metricName, metricName + " is above limit: " + value));
+            }
+        } else {
+            if (existingAlert.isPresent()) {
+                alerts.remove(existingAlert.get());
+            }
         }
     }
 
@@ -76,14 +91,8 @@ public class MetricService {
         return latency;
     }
 
-    private void removeAlerts(String metricName) {
-        alerts.removeIf(alert -> alert.getMetricName().equals(metricName));
-    }
-
     @Scheduled(fixedRate = 5000)
     public void sendCpuMetric() {
-        // Limpa o alerta da cpu a cada verificação
-        removeAlerts("cpu");
 
         int cpuUsage = generateCpuMetric();
         messagingTemplate.convertAndSend("/topic/metrics",
@@ -92,8 +101,6 @@ public class MetricService {
 
     @Scheduled(fixedRate = 8000)
     public void sendMemoryMetric() {
-        // Limpa o alerta da memory a cada verificação
-        removeAlerts("memory");
 
         int memoryUsage = generateMemoryMetric();
         messagingTemplate.convertAndSend("/topic/metrics",
@@ -102,8 +109,6 @@ public class MetricService {
 
     @Scheduled(fixedRate = 3000)
     public void sendLatencyMetric() {
-        // Limpa o alerta da latency a cada verificação
-        removeAlerts("latency");
 
         int latency = generateLatencyMetric();
         messagingTemplate.convertAndSend("/topic/metrics",
